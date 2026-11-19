@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Vivid Analysis builds Power BI dashboards and the Microsoft Fabric and Azure data pipelines behind them.">
+<title>Vivid Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a report page. Left-aligned text columns, one data-pipeline diagram as the hero visual,
+   sections separated by thin rules and labelled in mono like fields in a data model. */
+:root {
+  --paper: #F5F7F6;
+  --surface: #FFFFFF;
+  --ink: #12272C;
+  --muted: #53676B;
+  --line: #D6DFDE;
+  --accent: #1E4FDF;
+  --accent-ink: #FFFFFF;
+  --bronze: #A0643A;
+  --silver: #7F9196;
+  --gold: #C4850F;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C1517; --surface: #132125; --ink: #E3ECEA; --muted: #9AAEB0; --line: #233639;
+    --accent: #7E9CFF; --accent-ink: #0C1517; --bronze: #D08F5F; --silver: #A9BABE; --gold: #F0B44A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C1517; --surface: #132125; --ink: #E3ECEA; --muted: #9AAEB0; --line: #233639;
+  --accent: #7E9CFF; --accent-ink: #0C1517; --bronze: #D08F5F; --silver: #A9BABE; --gold: #F0B44A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+@media (prefers-color-scheme: dark) { html { color-scheme: dark; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 var(--f-body); }
+a { color: var(--accent); }
+a:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); font-stretch: 112%; line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.1rem, 5.2vw, 3.6rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 750; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+.label { font: 500 0.75rem/1.4 var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 22px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 1.15rem/1 var(--f-display); font-stretch: 118%; color: var(--ink); text-decoration: none; }
+.mark { width: 26px; height: 26px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 3px; }
+.mark i { display: block; background: var(--accent); border-radius: 1px; }
+.mark i:nth-child(1) { height: 40%; } .mark i:nth-child(2) { height: 70%; } .mark i:nth-child(3) { height: 100%; background: var(--gold); }
+nav ul { display: flex; gap: 22px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+nav a:hover { color: var(--ink); }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 56px; align-items: center; padding-block: 48px 72px; }
+.hero-text { display: grid; gap: 22px; }
+.lede { font-size: 1.13rem; color: var(--muted); max-width: 58ch; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; border: 1.5px solid var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { color: var(--accent); background: transparent; }
+.btn:hover { filter: brightness(1.08); }
+
+/* pipeline diagram */
+.flow { padding: 22px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; position: relative; display: grid; gap: 18px; }
+.flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; position: relative; }
+.flow-head { display: flex; justify-content: space-between; gap: 12px; }
+.flow li { position: relative; padding-left: 34px; display: grid; gap: 2px; }
+.flow li::before { content: ""; position: absolute; left: 6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent); background: var(--surface); z-index: 1; }
+.flow li:last-child::before { background: var(--accent); }
+.flow .rail { position: absolute; left: 35px; top: 72px; bottom: 40px; width: 2px; background: var(--line); }
+.flow .pulse { position: absolute; left: -3px; top: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: travel 4.5s ease-in-out infinite; }
+@keyframes travel { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: calc(100% - 8px); opacity: 0; } }
+.flow strong { font-weight: 600; }
+.flow small { color: var(--muted); font-size: 0.88rem; }
+.layers { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.layers span { font: 500 0.72rem/1 var(--f-mono); padding: 5px 8px; border-radius: 4px; border: 1px solid currentColor; }
+.l-bronze { color: var(--bronze); } .l-silver { color: var(--silver); } .l-gold { color: var(--gold); }
+
+/* sections */
+section.block { border-top: 1px solid var(--line); }
+.block .wrap { padding-block: 64px; display: grid; gap: 32px; }
+.section-head { display: grid; gap: 10px; max-width: 60ch; }
+.services { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 48px; }
+.service { display: grid; gap: 10px; align-content: start; padding-top: 18px; border-top: 2px solid var(--ink); }
+.service p { color: var(--muted); }
+.deliverable { font: 400 0.82rem/1.5 var(--f-mono); color: var(--ink); }
+.deliverable b { font-weight: 500; color: var(--muted); }
+
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; counter-reset: step; list-style: none; margin: 0; padding: 0; }
+.steps li { display: grid; gap: 8px; align-content: start; }
+.steps li::before { counter-increment: step; content: "Step " counter(step); font: 500 0.75rem/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.steps p { color: var(--muted); }
+
+.split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: start; }
+.split .section-head p { color: var(--muted); }
+pre.dax { margin: 0; padding: 20px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font: 400 0.9rem/1.7 var(--f-mono); color: var(--ink); }
+.dax .k { color: var(--accent); font-weight: 500; }
+.dax .m { color: var(--gold); }
+.dax .c { color: var(--muted); }
+
+.creds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.cred { display: grid; gap: 6px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.cred .code { font: 500 0.8rem/1 var(--f-mono); color: var(--accent); }
+.skills { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.skills li { font: 400 0.85rem/1 var(--f-mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; }
+.founder { color: var(--muted); max-width: 65ch; }
+
+.contact { background: var(--ink); color: var(--paper); }
+.contact .wrap { padding-block: 64px; display: grid; gap: 18px; }
+.contact h2 { color: var(--paper); }
+.contact p { color: var(--paper); opacity: 0.82; max-width: 58ch; }
+.contact .btn.primary { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+
+footer .wrap { padding-block: 28px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 0.88rem; }
+#served b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); }
+
+@media (max-width: 860px) {
+  .hero, .split { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .services, .creds { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .hero { padding-block: 24px 56px; }
+}
+@media (prefers-reduced-motion: reduce) { .flow .pulse { animation: none; opacity: 0; } }
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="Vivid Analysis home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Vivid Analysis</a>
+  <nav aria-label="Main">
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#process">How we work</a></li>
+      <li><a href="#credentials">Credentials</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div class="hero-text">
+      <p class="label">Data analytics and Power BI · Benin City, Nigeria · working worldwide</p>
+      <h1>Turn scattered data into reports your team actually uses.</h1>
+      <p class="lede">Vivid Analysis builds Power BI dashboards and the Microsoft Fabric and Azure pipelines behind them. We take you from messy spreadsheets and databases to one trusted model that refreshes on its own.</p>
+      <div class="actions">
+        <a class="btn primary" href="#contact">Start a project</a>
+        <a class="btn ghost" href="https://vividibori.netlify.app" target="_blank" rel="noopener">See past work</a>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-head"><span class="label">Your data, end to end</span><span class="label">daily refresh</span></div>
+      <ol class="flow-list" aria-label="How your data travels">
+      <li><span class="label">Sources</span><strong>SQL Server, Excel, CSV and APIs</strong><small>Wherever your numbers live today</small></li>
+      <li><span class="label">Pipelines</span><strong>Azure Data Factory and Fabric</strong><small>Scheduled, logged, and alerting on failure</small></li>
+      <li><span class="label">Lakehouse</span><strong>Cleaned in three layers</strong>
+        <span class="layers"><span class="l-bronze">bronze · raw</span><span class="l-silver">silver · clean</span><span class="l-gold">gold · ready</span></span></li>
+      <li><span class="label">Semantic model</span><strong>One set of DAX measures</strong><small>Everyone's "revenue" means the same thing</small></li>
+      <li><span class="label">Power BI</span><strong>Reports, alerts and row-level security</strong><small>Each person sees what they should</small></li>
+      </ol>
+      <span class="rail" aria-hidden="true"><span class="pulse"></span></span>
+    </div>
+  </div>
+
+  <section class="block" id="services" aria-labelledby="services-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="label">Services</p>
+        <h2 id="services-h">What we build</h2>
+      </div>
+      <div class="services">
+        <article class="service">
+          <h3>Power BI dashboards and reports</h3>
+          <p>Data models, DAX measures, drill-throughs and row-level security, published to the Power BI service with scheduled refresh.</p>
+          <p class="deliverable"><b>Typical deliverable:</b> a sales or operations dashboard your managers open every morning</p>
+        </article>
+        <article class="service">
+          <h3>Data engineering on Fabric and Azure</h3>
+          <p>Data Factory and Fabric pipelines, PySpark notebooks and lakehouses that load your data reliably, every day.</p>
+          <p class="deliverable"><b>Typical deliverable:</b> automated loads from your systems into a clean lakehouse</p>
+        </article>
+        <article class="service">
+          <h3>Data cleaning and migration</h3>
+          <p>SQL, Python and SSIS work that turns duplicated, inconsistent records into one source of truth.</p>
+          <p class="deliverable"><b>Typical deliverable:</b> a cleaned, documented dataset with the rules written down</p>
+        </article>
+        <article class="service">
+          <h3>Business apps</h3>
+          <p>Power Apps for everyday data entry, such as stock and inventory, feeding straight into your reports.</p>
+          <p class="deliverable"><b>Typical deliverable:</b> a simple app your staff use on their phones</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="process" aria-labelledby="process-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="label">How we work</p>
+        <h2 id="process-h">Three steps, no surprises</h2>
+      </div>
+      <ol class="steps">
+        <li><h3>Discover</h3><p>A short call to agree the questions your report must answer, and where the data for each one lives.</p></li>
+        <li><h3>Build</h3><p>Pipelines and the model are built in your own Microsoft tenant, with a working demo every week.</p></li>
+        <li><h3>Hand over</h3><p>Documentation, a training session for your team, and a support window after go-live.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="dax-h">
+    <div class="wrap split">
+      <div class="section-head">
+        <p class="label">Our standard</p>
+        <h2 id="dax-h">Measures you can read</h2>
+        <p>Every number in your report comes from a named, documented measure. When someone asks "how is growth calculated?", the answer is one line away.</p>
+      </div>
+<pre class="dax" aria-label="Example DAX measure"><code><span class="m">Revenue YoY %</span> =
+<span class="k">VAR</span> CurrentYear = [Total Revenue]
+<span class="k">VAR</span> PriorYear =
+    CALCULATE ( [Total Revenue], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+<span class="k">RETURN</span>
+    DIVIDE ( CurrentYear - PriorYear, PriorYear )
+<span class="c">// DIVIDE returns blank instead of an error when last year is empty</span></code></pre>
+    </div>
+  </section>
+
+  <section class="block" id="credentials" aria-labelledby="cred-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="label">Credentials</p>
+        <h2 id="cred-h">Microsoft certified</h2>
+      </div>
+      <div class="creds">
+        <div class="cred"><span class="code">PL-300</span><h3>Power BI Data Analyst Associate</h3><p class="label">Microsoft Certified</p></div>
+        <div class="cred"><span class="code">DP-700</span><h3>Fabric Data Engineer Associate</h3><p class="label">Microsoft Certified</p></div>
+      </div>
+      <ul class="skills" aria-label="Tools we use">
+        <li>Power BI</li><li>DAX</li><li>Power Query</li><li>Microsoft Fabric</li><li>Azure Data Factory</li><li>SQL</li><li>Python</li><li>PySpark</li><li>SSIS</li><li>Power Apps</li>
+      </ul>
+      <p class="founder">Vivid Analysis was founded by Vivid Ibori, a data analyst since 2021 with a master's in management (finance analytics) from the University of Bolton.</p>
+    </div>
+  </section>
+
+  <section class="contact" id="contact" aria-labelledby="contact-h">
+    <div class="wrap">
+      <p class="label" style="color: inherit; opacity: 0.7;">Contact</p>
+      <h2 id="contact-h">Have data that should be telling you more?</h2>
+      <p>Tell us what you need to know and where your data lives today. We'll reply with a plan and a fixed quote.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://vividibori.netlify.app" target="_blank" rel="noopener">Get in touch</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Vivid Analysis · Benin City, Nigeria</span>
+    <span id="served">Served from Microsoft Azure by <b>__HOST__</b></span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var s = document.getElementById("served");
+    if (s && s.textContent.indexOf("__HOST__") !== -1) { s.hidden = true; }
+  })();
+</script>
+</body>
+</html>
